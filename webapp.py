@@ -14,7 +14,7 @@ import os
 app = Flask(__name__)
 
 app.debug = False #Change this to False for production
-#os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' #Remove once done debugging
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' #Remove once done debugging
 
 app.secret_key = os.environ['SECRET_KEY'] #used to sign session cookies
 oauth = OAuth(app)
@@ -49,7 +49,7 @@ def home():
 #redirect to GitHub's OAuth page and confirm callback URL
 @app.route('/login')
 def login():   
-    return github.authorize(callback=url_for('authorized', _external=True, _scheme='https')) #callback URL must match the pre-configured callback URL
+    return github.authorize(callback=url_for('authorized', _external=True, _scheme='http')) #callback URL must match the pre-configured callback URL
 
 @app.route('/logout')
 def logout():
@@ -66,6 +66,11 @@ def authorized():
         try:
             session['github_token'] = (resp['access_token'], '') #save the token to prove that the user logged in
             session['user_data']=github.get('user').data
+            
+            session['user_name']=session['user_data']['login']
+            session['user_creation']=session['user_data']['created_at']
+            
+            print(session['user_name'])
             #pprint.pprint(vars(github['/email']))
             #pprint.pprint(vars(github['api/2/accounts/profile/']))
             message='You were successfully logged in as ' + session['user_data']['login'] + '.'
@@ -86,7 +91,11 @@ def renderPage1():
 
 @app.route('/page2')
 def renderPage2():
-    return render_template('page2.html')
+    if 'user_name' in session:
+        user_name_pprint = "Username: " + pprint.pformat(session['user_name'])+ " " + "Account Creation Date: " + pprint.pformat(session['user_creation'])
+    else:
+        user_name_pprint = '';
+    return render_template('page2.html', dump_user_name=user_name_pprint)
 
 @app.route('/googleb4c3aeedcc2dd103.html')
 def render_google_verification():
